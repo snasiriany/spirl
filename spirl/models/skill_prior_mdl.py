@@ -10,7 +10,7 @@ from matplotlib.patches import Ellipse
 
 from spirl.components.base_model import BaseModel
 from spirl.components.logger import Logger
-from spirl.modules.losses import KLDivLoss, NLL
+from spirl.modules.losses import KLDivLoss, NLL, L2Loss
 from spirl.modules.subnetworks import BaseProcessingLSTM, Predictor, Encoder
 from spirl.modules.recurrent_modules import RecurrentPredictor
 from spirl.utils.general_utils import AttrDict, ParamDict, split_along_axis, get_clipped_optimizer
@@ -141,9 +141,11 @@ class SkillPriorMdl(BaseModel, ProbabilisticModel):
         losses = AttrDict()
 
         # reconstruction loss, assume unit variance model output Gaussian
-        losses.rec_mse = NLL(self._hp.reconstruction_mse_weight) \
+        losses.rec_nll = NLL(self._hp.reconstruction_mse_weight) \
             (Gaussian(model_output.reconstruction, torch.zeros_like(model_output.reconstruction)),
              self._regression_targets(inputs))
+
+        losses.rec_mse = L2Loss(0.0)(model_output.reconstruction, self._regression_targets(inputs))
 
         # KL loss
         losses.kl_loss = KLDivLoss(self.beta)(model_output.q, model_output.p)
